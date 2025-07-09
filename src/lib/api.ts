@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8001/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 export interface CustomPoint {
   id: number;
@@ -69,6 +69,13 @@ class ApiService {
     baseURL: API_BASE_URL,
     timeout: 10000,
   });
+
+  // Utility method to get complete image URL
+  getCompleteImageUrl(imageUrl: string): string {
+    if (!imageUrl) return '';
+    if (imageUrl.startsWith('http')) return imageUrl;
+    return `http://localhost:8000${imageUrl}`;
+  }
 
   // Custom Points
   async getCustomPoints(): Promise<CustomPoint[]> {

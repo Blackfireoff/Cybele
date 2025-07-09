@@ -182,38 +182,44 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
             <PushPin color={stamp.hexColor} size="md" />
           </div>
           
-          <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
+          <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden vintage-border">
             {/* Main Image */}
-            <div className="relative h-[70%] w-full">
+            <div className="relative h-[70%] w-full postcard-shadow">
               <img
-                src={post.image_url}
+                src={apiService.getCompleteImageUrl(post.image_url)}
                 alt={post.caption}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Handle image loading error with fallback
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
               />
               
-              {/* Vintage photo border effect */}
-              <div className="absolute inset-0 border-4 border-white"></div>
+              {/* Vintage photo border effect with slight yellow tint */}
+              <div className="absolute inset-0 border-4 border-white/90 bg-gradient-to-br from-transparent to-amber-50/10"></div>
               
-              {/* Location tag on photo */}
-              <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded text-sm font-semibold">
-                {post.location}, {post.country}
+              {/* Location tag on photo - more stylish */}
+              <div className="absolute bottom-3 left-3 bg-black/60 text-white px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
+                <MapPin className="w-3 h-3" />
+                <span>{post.location}, {post.country}</span>
               </div>
             </div>
 
             {/* Bottom section */}
-            <div className="h-[30%] p-2 sm:p-3 md:p-4 bg-gradient-to-br from-orange-50 to-yellow-50 relative">
+            <div className="h-[30%] p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-yellow-50 relative">
               {/* Vintage postcard text */}
-              <div className="absolute top-1 sm:top-2 left-2 sm:left-4 text-xs text-gray-500 font-mono tracking-wider">
-                POSTCARD
+              <div className="absolute top-1.5 sm:top-2 left-3 sm:left-4 text-xs text-gray-500 font-mono tracking-widest uppercase">
+                Postcard
               </div>
               
               {/* Caption as handwritten note */}
-              <div className="mt-4 sm:mt-6">
-                <p className="text-gray-800 text-xs sm:text-sm leading-relaxed line-clamp-2" style={{ fontFamily: 'cursive' }}>
+              <div className="mt-5 sm:mt-6">
+                <p className="text-gray-800 text-xs sm:text-sm leading-relaxed line-clamp-2 handwriting-font">
                   {post.caption}
                 </p>
                 <div className="flex justify-between items-center mt-2 sm:mt-3">
-                  <span className="text-xs text-gray-500" style={{ fontFamily: 'cursive' }}>
+                  <span className="text-xs text-gray-500 handwriting-font">
                     - {post.user_name}
                   </span>
                   <span className="text-xs text-gray-400 font-mono">
@@ -222,21 +228,24 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
                 </div>
               </div>
 
-              {/* Engagement stats */}
-              <div className="absolute bottom-1 sm:bottom-2 right-2 sm:right-4 flex items-center space-x-2 sm:space-x-3">
+              {/* Engagement stats with improved styling */}
+              <div className="absolute bottom-2 sm:bottom-3 right-3 sm:right-4 flex items-center space-x-3 sm:space-x-4">
                 <button
                   onClick={handleLike}
-                  className="flex items-center space-x-1 text-xs transition-colors hover:scale-110"
+                  className="flex items-center gap-1.5 text-xs transition-all hover:scale-110"
+                  title="Like this postcard"
                 >
                   <Heart
-                    className={`w-3 h-3 sm:w-4 sm:h-4 ${
-                      isLiked ? 'fill-red-500 text-red-500' : 'text-gray-500'
+                    className={`w-3 h-3 sm:w-4 sm:h-4 transition-colors ${
+                      isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400'
                     }`}
                   />
-                  <span className="text-gray-600 text-xs">{post.likes + (isLiked ? 1 : 0)}</span>
+                  <span className={`text-xs ${isLiked ? 'text-red-500' : 'text-gray-500'}`}>
+                    {post.likes + (isLiked ? 1 : 0)}
+                  </span>
                 </button>
-                <div className="flex items-center space-x-1 text-xs text-gray-500">
-                  <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                <div className="flex items-center gap-1.5 text-xs text-gray-500" title="Comments">
+                  <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                   <span className="text-xs">{post.comments}</span>
                 </div>
               </div>
@@ -254,37 +263,66 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
             <PushPin color={stamp.hexColor} size="md" />
           </div>
           
-          <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 p-3 sm:p-4 md:p-6 relative">
+          <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 p-3 sm:p-4 md:p-6 relative vintage-border">
             {/* Postcard back header */}
-            <div className="flex justify-between items-start mb-4 sm:mb-6">
+            <div className="flex justify-between items-start mb-2 sm:mb-3">
               <div className="text-xs text-gray-500 font-mono tracking-wider">
                 POST CARD
               </div>
+            </div>
+
+            {/* Enhanced Stamp and Postmark in top right corner */}
+            <div className="absolute top-3 sm:top-4 right-3 sm:right-6 flex items-start">
+              {/* Improved vintage stamp */}
+              <div className={`w-12 h-16 sm:w-16 sm:h-20 ${stamp.color} text-white flex flex-col items-center justify-center stamp-perforations rounded-sm border-2 border-white shadow-md transform rotate-1`}>
+                <div className="text-sm sm:text-lg mb-1">{stamp.pattern}</div>
+                <div className="text-xs font-bold">{stamp.country}</div>
+                <div className="text-[10px] mt-1 font-mono">{new Date().getFullYear()}</div>
+              </div>
               
-              {/* Vintage stamp */}
-              <div className={`w-12 h-8 sm:w-16 sm:h-12 ${stamp.color} text-white flex flex-col items-center justify-center rounded-sm border-2 border-white shadow-md transform rotate-2`}>
-                <div className="text-sm sm:text-lg">{stamp.pattern}</div>
-                <div className="text-xs font-bold hidden sm:block">{stamp.country}</div>
+              {/* Enhanced Postmark - overlapping the stamp slightly */}
+              <div className="absolute top-2 right-4 w-20 h-20 sm:w-24 sm:h-24 postmark-circle flex items-center justify-center transform -rotate-6 opacity-70">
+                <div className="text-center text-xs text-gray-600 transform rotate-6">
+                  <div className="font-bold text-[10px] sm:text-xs uppercase tracking-wide">{post.location}</div>
+                  <div className="font-mono text-[10px] sm:text-xs font-medium">JUL 09</div>
+                  <div className="font-mono text-[10px] sm:text-xs font-medium">2025</div>
+                </div>
               </div>
             </div>
 
-            {/* Postmark */}
-            <div className="absolute top-6 sm:top-8 right-8 sm:right-12 w-16 h-16 sm:w-20 sm:h-20 border-2 border-gray-400 rounded-full flex items-center justify-center transform -rotate-12 opacity-60">
-              <div className="text-center text-xs text-gray-600">
-                <div className="font-bold text-xs sm:text-sm">{post.location.toUpperCase()}</div>
-                <div className="text-xs">{post.date_stamp}</div>
+            {/* Stats section - positioned in the upper left */}
+            <div className="absolute left-3 sm:left-6 top-14 sm:top-16 w-[40%] z-10">
+              <div className="p-2 sm:p-3 bg-gray-50/80 rounded border border-gray-200/50">
+                <div className="text-xs text-gray-500 mb-1 font-mono uppercase tracking-wide">Postcard Stats:</div>
+                <div className="space-y-0.5 text-xs text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Heart className="w-3 h-3 text-red-400" /> 
+                    <span>{post.likes + (isLiked ? 1 : 0)} hearts</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MessageCircle className="w-3 h-3 text-blue-400" /> 
+                    <span>{post.comments} comments</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-[10px] w-3 h-3 flex items-center justify-center">📅</div>
+                    <span>Sent {getRelativeTime(post.created_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3 text-red-500" /> 
+                    <span>From {post.location}</span>
+                  </div>
+                </div>
               </div>
             </div>
+            
+            {/* Horizontal divider line - positioned lower on the card */}
+            <div className="absolute left-3 sm:left-6 right-3 sm:right-6 top-[45%] h-px bg-gray-300 border-t border-dashed border-gray-200"></div>
 
-            {/* Vertical divider line (classic postcard) */}
-            <div className="absolute left-1/2 top-16 sm:top-20 bottom-4 sm:bottom-6 w-px bg-gray-300"></div>
-
-            {/* Left side - Message */}
-            <div className="w-[45%] h-full pt-12 sm:pt-16">
-              <div className="text-xs text-gray-500 mb-2 sm:mb-3 font-mono">MESSAGE:</div>
+            {/* Message section - below the horizontal line */}
+            <div className="absolute left-3 sm:left-6 right-3 sm:right-6 top-[calc(45%+12px)] sm:top-[calc(45%+16px)]">
+              <div className="text-xs text-gray-500 mb-2 font-mono uppercase tracking-wide">Message:</div>
               <div 
-                className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-6 sm:line-clamp-none"
-                style={{ fontFamily: 'cursive' }}
+                className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-6 sm:line-clamp-none handwriting-font"
               >
                 {post.personal_message || 'No message provided'}
               </div>
@@ -293,12 +331,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
               <div className="mt-4 sm:mt-6">
                 <div className="flex items-center space-x-2">
                   <img
-                    src={post.user_avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face'}
+                    src={post.user_avatar ? apiService.getCompleteImageUrl(post.user_avatar) : 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face'}
                     alt={post.user_name}
-                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-200"
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-200 shadow-sm"
                   />
                   <div>
-                    <div className="text-xs sm:text-sm font-semibold text-gray-800" style={{ fontFamily: 'cursive' }}>
+                    <div className="text-xs sm:text-sm font-semibold text-gray-800 handwriting-font">
                       {post.user_name}
                     </div>
                     <div className="text-xs text-gray-500">
@@ -309,31 +347,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
               </div>
             </div>
 
-            {/* Right side - Address */}
-            <div className="absolute right-3 sm:right-6 top-16 sm:top-20 w-[45%]">
-              <div className="text-xs text-gray-500 mb-2 sm:mb-3 font-mono">TO:</div>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-700" style={{ fontFamily: 'cursive' }}>
-                <div className="font-semibold">You</div>
-                <div>Best Friend</div>
-                <div>Hometown University</div>
-                <div>Missing You Blvd</div>
-                <div>Friendship City</div>
-              </div>
-
-              {/* Stats section */}
-              <div className="mt-4 sm:mt-8 p-2 sm:p-3 bg-gray-50 rounded border">
-                <div className="text-xs text-gray-500 mb-1 sm:mb-2 font-mono">POSTCARD STATS:</div>
-                <div className="space-y-1 text-xs text-gray-600">
-                  <div>❤️ {post.likes + (isLiked ? 1 : 0)} hearts</div>
-                  <div>💬 {post.comments} comments</div>
-                  <div>📅 Sent {getRelativeTime(post.created_at)}</div>
-                  <div>📍 From {post.location}</div>
-                </div>
-              </div>
-            </div>
-
             {/* Click instruction */}
-            <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-400 italic">
+            <div className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 text-xs text-gray-400 italic">
               Click to flip back
             </div>
           </div>

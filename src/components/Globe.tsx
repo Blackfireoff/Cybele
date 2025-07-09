@@ -4,10 +4,10 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaf
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FriendModal } from './FriendModal';
-import { CreatePointModal } from './CreatePointModal';
+import { CreatePostcardMapModal } from './CreatePostcardMapModal';
 import { Button } from './ui/button';
 import { Plus } from 'lucide-react';
-import { apiService, CustomPoint as ApiCustomPoint, Friend as ApiFriend } from '../lib/api';
+import { apiService, CustomPoint as ApiCustomPoint, Friend as ApiFriend, Postcard } from '../lib/api';
 
 interface Friend {
   id: string | number;
@@ -90,7 +90,8 @@ export const Globe = () => {
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [customPoints, setCustomPoints] = useState<CustomPoint[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [isCreatePointModalOpen, setIsCreatePointModalOpen] = useState(false);
+  const [postcards, setPostcards] = useState<Postcard[]>([]);
+  const [isCreatePostcardModalOpen, setIsCreatePostcardModalOpen] = useState(false);
   const [clickCoordinates, setClickCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -100,10 +101,11 @@ export const Globe = () => {
       try {
         setIsLoading(true);
         
-        // Load friends and custom points from API
-        const [apiCustomPoints, apiFriends] = await Promise.all([
+        // Load friends, custom points, and postcards from API
+        const [apiCustomPoints, apiFriends, apiPostcards] = await Promise.all([
           apiService.getCustomPoints(),
-          apiService.getFriends()
+          apiService.getFriends(),
+          apiService.getPostcards()
         ]);
 
         // Convert API data to component format
@@ -117,22 +119,47 @@ export const Globe = () => {
           type: 'custom' as const
         }));
 
-        const convertedFriends: Friend[] = apiFriends.map(friend => ({
-          id: friend.id.toString(),
-          name: friend.name,
-          status: friend.status || '',
-          avatar: friend.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-          location: {
-            country: friend.country || '',
-            city: friend.city || '',
-            lat: friend.lat,
-            lng: friend.lng,
-          },
-          posts: [] // We'll implement posts later if needed
-        }));
+        // Map postcards by friend location to add to friends data
+        const postcardsByLocation = new Map<string, any[]>();
+        apiPostcards.forEach(postcard => {
+          const locationKey = `${postcard.lat.toFixed(4)},${postcard.lng.toFixed(4)}`;
+          if (!postcardsByLocation.has(locationKey)) {
+            postcardsByLocation.set(locationKey, []);
+          }
+          
+          // Build complete image URL with the proper host and port
+          const imageUrl = apiService.getCompleteImageUrl(postcard.image_url);
+            
+          postcardsByLocation.get(locationKey)?.push({
+            id: postcard.id.toString(),
+            image: imageUrl,
+            caption: postcard.caption,
+            timestamp: new Date(postcard.created_at).toLocaleDateString()
+          });
+        });
+
+        const convertedFriends: Friend[] = apiFriends.map(friend => {
+          const locationKey = `${friend.lat.toFixed(4)},${friend.lng.toFixed(4)}`;
+          const friendPosts = postcardsByLocation.get(locationKey) || [];
+          
+          return {
+            id: friend.id.toString(),
+            name: friend.name,
+            status: friend.status || '',
+            avatar: friend.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+            location: {
+              country: friend.country || '',
+              city: friend.city || '',
+              lat: friend.lat,
+              lng: friend.lng,
+            },
+            posts: friendPosts
+          };
+        });
 
         setCustomPoints(convertedCustomPoints);
         setFriends(convertedFriends);
+        setPostcards(apiPostcards);
       } catch (error) {
         console.error('Failed to load data:', error);
         // Fallback to mock data if API fails
@@ -145,9 +172,43 @@ export const Globe = () => {
     loadData();
   }, []);
 
-  // Handle point creation
-  const handlePointCreated = async () => {
+  // Handle postcard creation and reload data
+  const handlePostcardCreated = async () => {
     try {
+      // Reload postcards
+      const apiPostcards = await apiService.getPostcards();
+      setPostcards(apiPostcards);
+      
+      // Update friends with new postcards data
+      const updatedFriends = [...friends];
+      apiPostcards.forEach(postcard => {
+        // Find friends near this postcard location
+        const nearbyFriends = updatedFriends.filter(friend => 
+          Math.abs(friend.location.lat - postcard.lat) < 0.01 && 
+          Math.abs(friend.location.lng - postcard.lng) < 0.01
+        );
+        
+        // Add postcard to friend's posts if found
+        nearbyFriends.forEach(friend => {
+          if (!friend.posts) friend.posts = [];
+          
+          // Check if postcard already exists in friend's posts
+          const existingPostIndex = friend.posts.findIndex(post => post.id === postcard.id.toString());
+          
+          if (existingPostIndex === -1) {
+            friend.posts.push({
+              id: postcard.id.toString(),
+              image: `http://localhost:8001${postcard.image_url}`,
+              caption: postcard.caption,
+              timestamp: new Date(postcard.created_at).toLocaleDateString()
+            });
+          }
+        });
+      });
+      
+      setFriends(updatedFriends);
+      
+      // Also reload custom points just in case
       const apiCustomPoints = await apiService.getCustomPoints();
       const convertedCustomPoints: CustomPoint[] = apiCustomPoints.map(point => ({
         id: point.id,
@@ -160,7 +221,7 @@ export const Globe = () => {
       }));
       setCustomPoints(convertedCustomPoints);
     } catch (error) {
-      console.error('Failed to reload custom points:', error);
+      console.error('Failed to reload data:', error);
     }
   };
 
@@ -190,7 +251,7 @@ export const Globe = () => {
       click: (e) => {
         const { lat, lng } = e.latlng;
         setClickCoordinates({ lat, lng });
-        setIsCreatePointModalOpen(true);
+        setIsCreatePostcardModalOpen(true);
       }
     });
     return null;
@@ -227,7 +288,7 @@ export const Globe = () => {
             onClick={() => setCustomPoints([])}
             className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 shadow-lg"
           >
-            <span className="hidden sm:inline">Clear Points ({customPoints.length})</span>
+            <span className="hidden sm:inline">Clear Custom Points ({customPoints.length})</span>
             <span className="sm:hidden">Clear ({customPoints.length})</span>
           </Button>
         </div>
@@ -236,11 +297,11 @@ export const Globe = () => {
       {/* Instructions */}
       <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-20 bg-black/80 text-white text-xs sm:text-sm p-2 sm:p-3 rounded-lg max-w-[180px] sm:max-w-xs shadow-lg">
         <div className="font-semibold mb-1">Controls:</div>
-        <div>• Click anywhere to add a point</div>
+        <div>• Click anywhere to create a postcard</div>
         <div className="hidden sm:block">• Drag to pan, scroll to zoom</div>
         <div className="sm:hidden">• Drag & scroll</div>
-        <div className="hidden sm:block">• Click friend pins to view details</div>
-        <div className="sm:hidden">• Click pins for details</div>
+        <div className="hidden sm:block">• Click friend pins to view profile</div>
+        <div className="sm:hidden">• Click pins for profiles</div>
       </div>
 
       {/* Map View */}
@@ -263,29 +324,70 @@ export const Globe = () => {
                 key={friend.id}
                 position={[friend.location.lat, friend.location.lng]}
               >
-                <Popup>
-                  <div className="p-2">
-                    <div className="flex items-center gap-2 mb-2">
+                <Popup maxWidth={300} className="custom-popup">
+                  <div className="p-3 max-w-xs">
+                    {/* Clickable header with profile picture and name */}
+                    <div 
+                      className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-blue-50 p-2 rounded-lg transition-colors"
+                      onClick={() => setSelectedFriend(friend)}
+                      title="Click to view full profile"
+                    >
                       <img 
                         src={friend.avatar} 
                         alt={friend.name}
-                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-blue-200 shadow-sm map-profile-hover"
                       />
-                      <div>
-                        <div className="font-semibold text-sm sm:text-base">{friend.name}</div>
-                        <div className="text-xs text-gray-600">
-                          {friend.location.city}, {friend.location.country}
+                      <div className="flex-1">
+                        <div className="font-bold text-sm sm:text-base text-blue-700 hover:text-blue-900 transition-colors">
+                          {friend.name}
+                        </div>
+                        <div className="text-xs text-gray-600 flex items-center gap-1">
+                          📍 {friend.location.city}, {friend.location.country}
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs sm:text-sm italic text-gray-700">{friend.status}</div>
-                    <Button 
-                      size="sm" 
-                      className="mt-2 w-full text-xs"
-                      onClick={() => setSelectedFriend(friend)}
-                    >
-                      View Profile
-                    </Button>
+                    
+                    {/* Status */}
+                    <div className="text-xs sm:text-sm italic text-gray-700 mb-3 px-2 py-1 bg-gray-50 rounded">
+                      💭 {friend.status}
+                    </div>
+                    
+                    {/* Latest post image - only for mock friends that have posts */}
+                    {friend.posts && friend.posts.length > 0 && (
+                      <div className="mb-3">
+                        <div className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
+                          📸 Latest post
+                        </div>
+                        <img 
+                          src={friend.posts[0].image}
+                          alt={friend.posts[0].caption}
+                          className="w-full h-28 sm:h-36 object-cover rounded-lg border border-gray-200 shadow-sm postcard-image-hover"
+                        />
+                        <div className="text-xs text-gray-700 mt-2 line-clamp-2 font-medium">
+                          {friend.posts[0].caption}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          🕒 {friend.posts[0].timestamp}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Show placeholder for friends without posts */}
+                    {(!friend.posts || friend.posts.length === 0) && (
+                      <div className="mb-3">
+                        <div className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
+                          📸 Recent posts
+                        </div>
+                        <div className="w-full h-24 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                          <span className="text-xs text-gray-400">No photos yet</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Hint text */}
+                    <div className="text-xs text-gray-400 italic text-center py-2 border-t border-gray-100">
+                      👆 Click name or photo to view full profile
+                    </div>
                   </div>
                 </Popup>
               </Marker>
@@ -303,7 +405,7 @@ export const Globe = () => {
                     <div className="flex items-center gap-2 mb-2">
                       {point.image_url && (
                         <img 
-                          src={`http://localhost:8000${point.image_url}`}
+                          src={apiService.getCompleteImageUrl(point.image_url)}
                           alt={point.name}
                           className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
                         />
@@ -335,11 +437,11 @@ export const Globe = () => {
           </MapContainer>
         </div>
 
-      {/* Create Point Modal */}
-      <CreatePointModal
-        isOpen={isCreatePointModalOpen}
-        onClose={() => setIsCreatePointModalOpen(false)}
-        onPointCreated={handlePointCreated}
+      {/* Create Postcard Modal */}
+      <CreatePostcardMapModal
+        isOpen={isCreatePostcardModalOpen}
+        onClose={() => setIsCreatePostcardModalOpen(false)}
+        onPostcardCreated={handlePostcardCreated}
         initialLat={clickCoordinates?.lat || 0}
         initialLng={clickCoordinates?.lng || 0}
       />
