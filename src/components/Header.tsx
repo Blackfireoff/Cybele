@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
             <MapPin className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-ocean-900">StudyGlobe</h1>
+            <h1 className="text-xl font-bold text-ocean-900">Cybele</h1>
             <p className="text-xs text-ocean-600">Stay connected worldwide</p>
           </div>
         </div>

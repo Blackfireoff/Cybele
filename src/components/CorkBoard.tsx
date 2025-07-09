@@ -113,7 +113,7 @@ const PostCard: React.FC<{ post: Post; rotation: number; position: { left: strin
 
   return (
     <div 
-      className="absolute w-72 cursor-pointer transition-all duration-300 ease-out"
+      className="absolute w-48 sm:w-64 md:w-72 cursor-pointer transition-all duration-300 ease-out"
       style={{
         left: position.left,
         top: position.top,
@@ -141,12 +141,12 @@ const PostCard: React.FC<{ post: Post; rotation: number; position: { left: strin
         }}
       >
         {/* Front Side */}
-        <div className="absolute inset-0 p-4 shadow-2xl border-2 border-white bg-white backdrop-blur-sm backface-hidden rounded-lg">
+        <div className="absolute inset-0 p-2 sm:p-3 md:p-4 shadow-2xl border-2 border-white bg-white backdrop-blur-sm backface-hidden rounded-lg">
           {/* Pin */}
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-sunset-500 rounded-full shadow-lg"></div>
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-sunset-500 rounded-full shadow-lg"></div>
           
           {/* User Info */}
-          <div className="flex items-center mb-3">
+          <div className="flex items-center mb-2 sm:mb-3">
             <img
               src={post.userAvatar}
               alt={post.userName}
@@ -238,34 +238,52 @@ const PostCard: React.FC<{ post: Post; rotation: number; position: { left: strin
 };
 
 export const CorkBoard = () => {
-  // Generate vertical positions for posts
+  // Generate responsive positions for posts
   const getPostStyles = (index: number) => {
-    const cols = 2; // Reduce to 2 columns for better vertical layout
+    const isMobile = window.innerWidth < 640;
+    const isTablet = window.innerWidth < 1024;
+    
+    // Responsive column layout
+    const cols = isMobile ? 1 : isTablet ? 2 : 3;
     const col = index % cols;
     
     // Calculate vertical position based on index
     const rowIndex = Math.floor(index / cols);
-    const cardHeight = 400; // Approximate height of each card including spacing
+    const cardHeight = isMobile ? 320 : isTablet ? 360 : 400;
     
     // Add some randomness to positioning but keep it controlled
-    const randomX = (Math.random() - 0.5) * 8; // Smaller horizontal randomness
-    const randomY = (Math.random() - 0.5) * 20; // Small vertical randomness
+    const randomX = (Math.random() - 0.5) * (isMobile ? 4 : 8);
+    const randomY = (Math.random() - 0.5) * (isMobile ? 10 : 20);
+    
+    // Responsive positioning
+    let leftPosition;
+    if (isMobile) {
+      leftPosition = '10%'; // Single column, centered
+    } else if (isTablet) {
+      leftPosition = col === 0 ? '10%' : '55%'; // Two columns
+    } else {
+      leftPosition = col === 0 ? '5%' : col === 1 ? '37.5%' : '70%'; // Three columns
+    }
     
     return {
       position: {
-        left: `${col === 0 ? '15%' : '55%'}`, // Two columns: left at 15%, right at 55%
-        top: `${rowIndex * cardHeight + 50 + randomY}px` // Vertical spacing
+        left: leftPosition,
+        top: `${rowIndex * cardHeight + 50 + randomY}px`
       },
-      rotation: (Math.random() - 0.5) * 8 // Smaller rotation for cleaner look
+      rotation: (Math.random() - 0.5) * (isMobile ? 4 : 8) // Smaller rotation on mobile
     };
   };
 
   // Calculate total height needed for all posts
-  const totalHeight = Math.ceil(mockPosts.length / 2) * 400 + 200; // Extra padding
+  const isMobile = window.innerWidth < 640;
+  const isTablet = window.innerWidth < 1024;
+  const cols = isMobile ? 1 : isTablet ? 2 : 3;
+  const cardHeight = isMobile ? 320 : isTablet ? 360 : 400;
+  const totalHeight = Math.ceil(mockPosts.length / cols) * cardHeight + 200;
 
   return (
     <div className="relative w-full overflow-x-hidden overflow-y-auto">
-      {/* Cork Board Background - Fixed */}
+      {/* Cork Board Background - Responsive */}
       <div 
         className="absolute inset-0 opacity-80"
         style={{
@@ -273,14 +291,14 @@ export const CorkBoard = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
+          backgroundAttachment: isMobile ? 'scroll' : 'fixed', // Fixed attachment causes issues on mobile
           minHeight: `${totalHeight}px`
         }}
       />
       
       {/* Posts Container */}
       <div 
-        className="relative p-8" 
+        className="relative p-4 sm:p-6 lg:p-8" 
         style={{ minHeight: `${totalHeight}px` }}
       >
         {mockPosts.map((post, index) => {

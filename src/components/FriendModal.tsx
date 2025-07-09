@@ -3,7 +3,7 @@ import React from 'react';
 import { X, MapPin } from 'lucide-react';
 
 interface Friend {
-  id: string;
+  id: string | number;
   name: string;
   status: string;
   avatar: string;
