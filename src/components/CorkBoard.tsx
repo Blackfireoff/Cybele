@@ -1,6 +1,66 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, MapPin, Mail, Stamp } from 'lucide-react';
 
+// Beautiful PushPin component
+const PushPin: React.FC<{ color?: string; size?: 'sm' | 'md' | 'lg' }> = ({ 
+  color = '#ef4444', 
+  size = 'md' 
+}) => {
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6'
+  };
+
+  const needleLength = {
+    sm: 12,
+    md: 16,
+    lg: 20
+  };
+
+  return (
+    <div className="relative flex items-center justify-center">
+      {/* Pin shadow */}
+      <div 
+        className={`absolute ${sizeClasses[size]} rounded-full opacity-20`}
+        style={{ 
+          backgroundColor: color,
+          transform: 'translate(2px, 2px)',
+          filter: 'blur(2px)'
+        }}
+      />
+      
+      {/* Pin head */}
+      <div 
+        className={`relative ${sizeClasses[size]} rounded-full shadow-lg border-2 border-white z-10`}
+        style={{ 
+          backgroundColor: color,
+          background: `radial-gradient(circle at 30% 30%, ${color}dd, ${color})`
+        }}
+      >
+        {/* Highlight reflection */}
+        <div 
+          className="absolute top-1 left-1 w-2 h-2 bg-white rounded-full opacity-60"
+          style={{ transform: 'scale(0.4)' }}
+        />
+      </div>
+      
+      {/* Pin needle */}
+      <div 
+        className="absolute bg-gray-400 opacity-30"
+        style={{
+          width: '1px',
+          height: `${needleLength[size]}px`,
+          top: '50%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(to bottom, #9ca3af, #6b7280)'
+        }}
+      />
+    </div>
+  );
+};
+
 interface Post {
   id: string;
   userId: string;
@@ -110,14 +170,14 @@ const mockPosts: Post[] = [
   }
 ];
 
-// Vintage stamp designs
+// Vintage stamp designs with hex colors
 const stamps = [
-  { color: 'bg-red-500', pattern: '🗼', country: 'FRANCE' },
-  { color: 'bg-pink-500', pattern: '🌸', country: 'JAPAN' },
-  { color: 'bg-green-500', pattern: '🏛️', country: 'ITALY' },
-  { color: 'bg-yellow-500', pattern: '🎨', country: 'SPAIN' },
-  { color: 'bg-blue-500', pattern: '🗽', country: 'USA' },
-  { color: 'bg-purple-500', pattern: '🏰', country: 'UK' }
+  { color: 'bg-red-500', hexColor: '#ef4444', pattern: '🗼', country: 'FRANCE' },
+  { color: 'bg-pink-500', hexColor: '#ec4899', pattern: '🌸', country: 'JAPAN' },
+  { color: 'bg-green-500', hexColor: '#22c55e', pattern: '🏛️', country: 'ITALY' },
+  { color: 'bg-yellow-500', hexColor: '#eab308', pattern: '🎨', country: 'SPAIN' },
+  { color: 'bg-blue-500', hexColor: '#3b82f6', pattern: '🗽', country: 'USA' },
+  { color: 'bg-purple-500', hexColor: '#a855f7', pattern: '🏰', country: 'UK' }
 ];
 
 const PostCard: React.FC<{ 
@@ -195,6 +255,11 @@ const PostCard: React.FC<{
       >
         {/* Front Side - Photo Side */}
         <div className="absolute inset-0 backface-hidden">
+          {/* Beautiful PushPin - centered at top */}
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+            <PushPin color={stamp.hexColor} size="md" />
+          </div>
+          
           <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
             {/* Main Image */}
             <div className="relative h-[70%] w-full">
@@ -265,6 +330,11 @@ const PostCard: React.FC<{
           className="absolute inset-0 backface-hidden"
           style={{ transform: 'rotateY(180deg)' }}
         >
+          {/* Beautiful PushPin - centered at top */}
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+            <PushPin color={stamp.hexColor} size="md" />
+          </div>
+          
           <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 p-3 sm:p-4 md:p-6 relative">
             {/* Postcard back header */}
             <div className="flex justify-between items-start mb-4 sm:mb-6">
@@ -488,12 +558,6 @@ export const CorkBoard = () => {
             />
           );
         })}
-        
-        {/* Decorative pushpins */}
-        <div className="absolute top-20 left-10 w-4 h-4 bg-red-500 rounded-full shadow-lg transform rotate-12 z-5"></div>
-        <div className="absolute top-32 right-16 w-4 h-4 bg-blue-500 rounded-full shadow-lg transform -rotate-6 z-5"></div>
-        <div className="absolute bottom-32 left-20 w-4 h-4 bg-green-500 rounded-full shadow-lg transform rotate-45 z-5"></div>
-        <div className="absolute bottom-48 right-12 w-4 h-4 bg-yellow-500 rounded-full shadow-lg transform -rotate-12 z-5"></div>
       </div>
     </div>
   );
