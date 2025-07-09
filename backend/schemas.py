@@ -44,3 +44,38 @@ class Friend(FriendBase):
     
     class Config:
         from_attributes = True
+
+class PostcardBase(BaseModel):
+    user_name: str
+    location: str
+    country: str
+    caption: str
+    personal_message: str
+    date_stamp: str
+    lat: float
+    lng: float
+
+class PostcardCreate(PostcardBase):
+    pass
+
+class PostcardUpdate(BaseModel):
+    user_name: Optional[str] = None
+    location: Optional[str] = None
+    country: Optional[str] = None
+    caption: Optional[str] = None
+    personal_message: Optional[str] = None
+    date_stamp: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+class Postcard(PostcardBase):
+    id: int
+    user_avatar: Optional[str] = None
+    image_url: str
+    likes: int
+    comments: int
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True

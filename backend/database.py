@@ -31,6 +31,25 @@ class Friend(Base):
     lng = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class Postcard(Base):
+    __tablename__ = "postcards"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False)
+    user_avatar = Column(String(500), nullable=True)
+    location = Column(String(100), nullable=False)
+    country = Column(String(100), nullable=False)
+    image_url = Column(String(500), nullable=False)
+    caption = Column(Text, nullable=False)
+    personal_message = Column(Text, nullable=False)
+    date_stamp = Column(String(20), nullable=False)  # e.g., "MAR 15, 2025"
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
+    likes = Column(Integer, default=0)
+    comments = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Database setup
 DATABASE_URL = "sqlite+aiosqlite:///./app.db"
 engine = create_engine(DATABASE_URL.replace("+aiosqlite", ""))

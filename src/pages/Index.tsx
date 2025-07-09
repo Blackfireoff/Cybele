@@ -15,6 +15,7 @@ const Index = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showSearchFriends, setShowSearchFriends] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for CorkBoard
   const { toast } = useToast();
 
   const handleUpdateLocation = (location: string, status: string) => {
@@ -25,11 +26,14 @@ const Index = () => {
     });
   };
 
-  const handleCreatePost = (image: string, caption: string) => {
-    console.log('Creating post:', caption);
+  const handleCreatePost = () => {
+    // This will be called when a postcard is successfully created
+    console.log('Postcard created successfully');
+    setShowCreatePost(false); // Close the modal
+    setRefreshKey(prev => prev + 1); // Trigger refresh of CorkBoard
     toast({
-      title: "Post Shared",
-      description: "Your moment has been shared with friends",
+      title: "Postcard Created",
+      description: "Your postcard has been shared with friends",
     });
   };
 
@@ -160,7 +164,7 @@ const Index = () => {
                 <div className="mt-3 w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-amber-600 to-transparent mx-auto"></div>
               </div>
               <div className="relative">
-                <CorkBoard />
+                <CorkBoard key={refreshKey} />
               </div>
             </div>
           </TabsContent>
@@ -183,7 +187,7 @@ const Index = () => {
       {showCreatePost && (
         <CreatePostModal
           onClose={() => setShowCreatePost(false)}
-          onPost={handleCreatePost}
+          onPostcardCreated={handleCreatePost}
         />
       )}
 

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8001/api';
 
 export interface CustomPoint {
   id: number;
@@ -23,6 +23,37 @@ export interface Friend {
   lng: number;
   avatar_url?: string;
   created_at: string;
+}
+
+export interface Postcard {
+  id: number;
+  user_name: string;
+  user_avatar?: string;
+  location: string;
+  country: string;
+  image_url: string;
+  caption: string;
+  personal_message: string;
+  date_stamp: string;
+  lat: number;
+  lng: number;
+  likes: number;
+  comments: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePostcardData {
+  user_name: string;
+  location: string;
+  country: string;
+  caption: string;
+  personal_message: string;
+  date_stamp: string;
+  lat: number;
+  lng: number;
+  image: File;
+  user_avatar?: File;
 }
 
 export interface CreateCustomPointData {
@@ -118,6 +149,45 @@ class ApiService {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  }
+
+  // Postcards
+  async getPostcards(): Promise<Postcard[]> {
+    const response = await this.api.get('/postcards');
+    return response.data;
+  }
+
+  async createPostcard(data: CreatePostcardData): Promise<Postcard> {
+    const formData = new FormData();
+    formData.append('user_name', data.user_name);
+    formData.append('location', data.location);
+    formData.append('country', data.country);
+    formData.append('caption', data.caption);
+    formData.append('personal_message', data.personal_message);
+    formData.append('date_stamp', data.date_stamp);
+    formData.append('lat', data.lat.toString());
+    formData.append('lng', data.lng.toString());
+    formData.append('image', data.image);
+    
+    if (data.user_avatar) {
+      formData.append('user_avatar', data.user_avatar);
+    }
+
+    const response = await this.api.post('/postcards', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  async deletePostcard(id: number): Promise<void> {
+    await this.api.delete(`/postcards/${id}`);
+  }
+
+  async likePostcard(id: number): Promise<{ likes: number }> {
+    const response = await this.api.put(`/postcards/${id}/like`);
     return response.data;
   }
 }

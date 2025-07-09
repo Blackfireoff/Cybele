@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, MapPin, Mail, Stamp } from 'lucide-react';
+import { apiService, Postcard } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 // Beautiful PushPin component
 const PushPin: React.FC<{ color?: string; size?: 'sm' | 'md' | 'lg' }> = ({ 
@@ -61,114 +63,13 @@ const PushPin: React.FC<{ color?: string; size?: 'sm' | 'md' | 'lg' }> = ({
   );
 };
 
-interface Post {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  location: string;
-  country: string;
-  image: string;
-  caption: string;
-  timestamp: string;
-  likes: number;
-  comments: number;
-  dateStamp: string;
-  personalMessage: string;
+interface PostCardProps {
+  post: Postcard;
+  rotation: number;
+  position: { left: string; top: string };
+  dimensions: { width: number; height: number };
+  onLike: (id: number) => void;
 }
-
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    userId: '1',
-    userName: 'Emma Johnson',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face',
-    location: 'Paris',
-    country: 'France',
-    image: 'https://images.unsplash.com/photo-1502602898536-47ad22581b52?w=600&h=400&fit=crop',
-    caption: 'Sunset from my dorm window in Paris',
-    personalMessage: 'Hey! You wouldn\'t believe how gorgeous the sunsets are from my dorm room. Every evening feels like a movie scene. Miss you tons! Can\'t wait to show you around when you visit. ❤️',
-    timestamp: '2 hours ago',
-    dateStamp: 'MAR 15, 2025',
-    likes: 24,
-    comments: 5
-  },
-  {
-    id: '2',
-    userId: '2',
-    userName: 'Marco Silva',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-    location: 'Tokyo',
-    country: 'Japan',
-    image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop',
-    caption: 'Cherry blossoms are incredible here!',
-    personalMessage: 'Dude, the cherry blossoms here are absolutely insane! I\'ve been taking photos every day but nothing captures how magical it really is. The whole city turns pink for like 2 weeks. Wish you were here to see this with me!',
-    timestamp: '1 day ago',
-    dateStamp: 'MAR 12, 2025',
-    likes: 18,
-    comments: 3
-  },
-  {
-    id: '3',
-    userId: '3',
-    userName: 'Sarah Chen',
-    userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-    location: 'Rome',
-    country: 'Italy',
-    image: 'https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=600&h=400&fit=crop',
-    caption: 'The Colosseum never gets old',
-    personalMessage: 'Still can\'t believe I\'m studying next to the ACTUAL Colosseum! Every morning I walk past 2000-year-old ruins on my way to get coffee. Rome is like living in a history book. Also, the pasta here... life-changing! 🍝',
-    timestamp: '3 days ago',
-    dateStamp: 'MAR 10, 2025',
-    likes: 32,
-    comments: 8
-  },
-  {
-    id: '4',
-    userId: '1',
-    userName: 'Emma Johnson',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face',
-    location: 'Paris',
-    country: 'France',
-    image: 'https://images.unsplash.com/photo-1549144511-f099e773c147?w=600&h=400&fit=crop',
-    caption: 'Morning coffee and croissants ☕🥐',
-    personalMessage: 'Started my morning routine: fresh croissants from the boulangerie downstairs and coffee that\'s actually decent (finally!). Living like a true Parisienne. The French really know how to do breakfast right.',
-    timestamp: '5 days ago',
-    dateStamp: 'MAR 08, 2025',
-    likes: 15,
-    comments: 2
-  },
-  {
-    id: '5',
-    userId: '2',
-    userName: 'Marco Silva',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-    location: 'Tokyo',
-    country: 'Japan',
-    image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=400&fit=crop',
-    caption: 'Traditional temple visit',
-    personalMessage: 'Visited this amazing temple today. The peace and quiet was incredible after the chaos of Tokyo streets. There\'s something really special about these ancient places. Felt like meditation just walking through the gardens.',
-    timestamp: '1 week ago',
-    dateStamp: 'MAR 05, 2025',
-    likes: 27,
-    comments: 6
-  },
-  {
-    id: '6',
-    userId: '4',
-    userName: 'Alex Rivera',
-    userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-    location: 'Barcelona',
-    country: 'Spain',
-    image: 'https://images.unsplash.com/photo-1544609472-e5c2e4a7dba1?w=600&h=400&fit=crop',
-    caption: 'Sagrada Familia at sunset',
-    personalMessage: 'Gaudí was absolutely insane (in the best way possible). This cathedral has been under construction for over 100 years and it\'s still not done! But wow, when the light hits it at sunset... pure magic. Barcelona is treating me well!',
-    timestamp: '2 weeks ago',
-    dateStamp: 'FEB 28, 2025',
-    likes: 41,
-    comments: 12
-  }
-];
 
 // Vintage stamp designs with hex colors
 const stamps = [
@@ -177,22 +78,43 @@ const stamps = [
   { color: 'bg-green-500', hexColor: '#22c55e', pattern: '🏛️', country: 'ITALY' },
   { color: 'bg-yellow-500', hexColor: '#eab308', pattern: '🎨', country: 'SPAIN' },
   { color: 'bg-blue-500', hexColor: '#3b82f6', pattern: '🗽', country: 'USA' },
-  { color: 'bg-purple-500', hexColor: '#a855f7', pattern: '🏰', country: 'UK' }
+  { color: 'bg-purple-500', hexColor: '#a855f7', pattern: '🏰', country: 'UK' },
+  { color: 'bg-orange-500', hexColor: '#f97316', pattern: '🗺️', country: 'DEFAULT' }
 ];
 
-const PostCard: React.FC<{ 
-  post: Post; 
-  rotation: number; 
-  position: { left: string; top: string };
-  dimensions: { width: number; height: number };
-}> = ({ post, rotation, position, dimensions }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimensions, onLike }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
   // Get appropriate stamp for the country
-  const stamp = stamps.find(s => s.country === post.country.toUpperCase()) || stamps[0];
+  const stamp = stamps.find(s => s.country === post.country.toUpperCase()) || stamps[stamps.length - 1];
+
+  // Format timestamp to display relative time
+  const getRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hour${Math.floor(diffInHours) !== 1 ? 's' : ''} ago`;
+    } else if (diffInDays < 7) {
+      return `${Math.floor(diffInDays)} day${Math.floor(diffInDays) !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) !== 1 ? 's' : ''} ago`;
+    }
+  };
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLiked(!isLiked);
+    onLike(post.id);
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -264,7 +186,7 @@ const PostCard: React.FC<{
             {/* Main Image */}
             <div className="relative h-[70%] w-full">
               <img
-                src={post.image}
+                src={post.image_url}
                 alt={post.caption}
                 className="w-full h-full object-cover"
               />
@@ -292,10 +214,10 @@ const PostCard: React.FC<{
                 </p>
                 <div className="flex justify-between items-center mt-2 sm:mt-3">
                   <span className="text-xs text-gray-500" style={{ fontFamily: 'cursive' }}>
-                    - {post.userName}
+                    - {post.user_name}
                   </span>
                   <span className="text-xs text-gray-400 font-mono">
-                    {post.dateStamp}
+                    {post.date_stamp}
                   </span>
                 </div>
               </div>
@@ -303,10 +225,7 @@ const PostCard: React.FC<{
               {/* Engagement stats */}
               <div className="absolute bottom-1 sm:bottom-2 right-2 sm:right-4 flex items-center space-x-2 sm:space-x-3">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsLiked(!isLiked);
-                  }}
+                  onClick={handleLike}
                   className="flex items-center space-x-1 text-xs transition-colors hover:scale-110"
                 >
                   <Heart
@@ -353,7 +272,7 @@ const PostCard: React.FC<{
             <div className="absolute top-6 sm:top-8 right-8 sm:right-12 w-16 h-16 sm:w-20 sm:h-20 border-2 border-gray-400 rounded-full flex items-center justify-center transform -rotate-12 opacity-60">
               <div className="text-center text-xs text-gray-600">
                 <div className="font-bold text-xs sm:text-sm">{post.location.toUpperCase()}</div>
-                <div className="text-xs">{post.dateStamp}</div>
+                <div className="text-xs">{post.date_stamp}</div>
               </div>
             </div>
 
@@ -367,20 +286,20 @@ const PostCard: React.FC<{
                 className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-6 sm:line-clamp-none"
                 style={{ fontFamily: 'cursive' }}
               >
-                {post.personalMessage}
+                {post.personal_message || 'No message provided'}
               </div>
               
               {/* Signature */}
               <div className="mt-4 sm:mt-6">
                 <div className="flex items-center space-x-2">
                   <img
-                    src={post.userAvatar}
-                    alt={post.userName}
+                    src={post.user_avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face'}
+                    alt={post.user_name}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-200"
                   />
                   <div>
                     <div className="text-xs sm:text-sm font-semibold text-gray-800" style={{ fontFamily: 'cursive' }}>
-                      {post.userName}
+                      {post.user_name}
                     </div>
                     <div className="text-xs text-gray-500">
                       Exchange Student
@@ -407,7 +326,7 @@ const PostCard: React.FC<{
                 <div className="space-y-1 text-xs text-gray-600">
                   <div>❤️ {post.likes + (isLiked ? 1 : 0)} hearts</div>
                   <div>💬 {post.comments} comments</div>
-                  <div>📅 Sent {post.timestamp}</div>
+                  <div>📅 Sent {getRelativeTime(post.created_at)}</div>
                   <div>📍 From {post.location}</div>
                 </div>
               </div>
@@ -425,10 +344,55 @@ const PostCard: React.FC<{
 };
 
 export const CorkBoard = () => {
+  const [postcards, setPostcards] = useState<Postcard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  
   const [windowSize, setWindowSize] = React.useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
     height: typeof window !== 'undefined' ? window.innerHeight : 768
   });
+
+  // Fetch postcards from API
+  useEffect(() => {
+    const fetchPostcards = async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getPostcards();
+        setPostcards(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching postcards:', err);
+        setError('Failed to load postcards');
+        setPostcards([]); // Fallback to empty array
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPostcards();
+  }, []);
+
+  // Handle like functionality
+  const handleLike = async (postcardId: number) => {
+    try {
+      const response = await apiService.likePostcard(postcardId);
+      // Update the local state with new like count
+      setPostcards(prev => prev.map(post => 
+        post.id === postcardId 
+          ? { ...post, likes: response.likes }
+          : post
+      ));
+    } catch (error) {
+      console.error('Error liking postcard:', error);
+      toast({
+        title: "Error",
+        description: "Failed to like postcard",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Update window size on resize
   React.useEffect(() => {
@@ -505,8 +469,37 @@ export const CorkBoard = () => {
   const cols = isMobile ? 1 : isTablet ? 2 : 3;
   const cardHeight = isMobile ? 420 : isTablet ? 450 : 480;
   const verticalSpacing = isMobile ? 40 : isTablet ? 60 : 80;
-  const totalRows = Math.ceil(mockPosts.length / cols);
-  const totalHeight = 40 + (totalRows * (cardHeight + verticalSpacing)) + 100; // Reduced initial padding since no internal header
+  const totalRows = Math.ceil(postcards.length / cols);
+  const totalHeight = postcards.length > 0 
+    ? 40 + (totalRows * (cardHeight + verticalSpacing)) + 100 
+    : 400; // Minimum height when no postcards
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ocean-500 mx-auto mb-4"></div>
+          <p className="text-ocean-700">Loading postcards...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-ocean-500 text-white rounded-lg hover:bg-ocean-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height: `${totalHeight}px` }}>
@@ -540,24 +533,34 @@ export const CorkBoard = () => {
         minHeight: `${totalHeight}px`
       }} />
       
-      {/* Posts Container - removed duplicate header */}
+      {/* Posts Container */}
       <div 
         className="relative p-4 sm:p-6 lg:p-8" 
         style={{ minHeight: `${totalHeight}px` }}
       >
-        {/* Postcards */}
-        {mockPosts.map((post, index) => {
-          const styles = getPostStyles(index);
-          return (
-            <PostCard
-              key={post.id}
-              post={post}
-              rotation={styles.rotation}
-              position={styles.position}
-              dimensions={styles.dimensions}
-            />
-          );
-        })}
+        {postcards.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-ocean-700 mb-4">No postcards yet!</p>
+              <p className="text-sm text-ocean-600">Create your first postcard to get started.</p>
+            </div>
+          </div>
+        ) : (
+          // Postcards
+          postcards.map((post, index) => {
+            const styles = getPostStyles(index);
+            return (
+              <PostCard
+                key={post.id}
+                post={post}
+                rotation={styles.rotation}
+                position={styles.position}
+                dimensions={styles.dimensions}
+                onLike={handleLike}
+              />
+            );
+          })
+        )}
       </div>
     </div>
   );

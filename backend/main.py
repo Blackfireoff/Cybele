@@ -7,8 +7,8 @@ from sqlalchemy import select
 from typing import List, Optional
 import os
 
-from database import Base, CustomPoint as CustomPointModel, Friend as FriendModel, create_tables
-from schemas import CustomPoint, CustomPointCreate, CustomPointUpdate, Friend, FriendCreate
+from database import Base, CustomPoint as CustomPointModel, Friend as FriendModel, Postcard as PostcardModel, create_tables
+from schemas import CustomPoint, CustomPointCreate, CustomPointUpdate, Friend, FriendCreate, Postcard, PostcardCreate
 from blob_storage import save_uploaded_file, delete_file
 
 # Create FastAPI app
@@ -17,7 +17,7 @@ app = FastAPI(title="Cybele Backend", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8080", "http://localhost:8081"],
+    allow_origins=["http://localhost:3000", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -219,6 +219,94 @@ async def create_friend(
     await db.refresh(db_friend)
     
     return db_friend
+
+# Postcards endpoints
+@app.get("/api/postcards", response_model=List[Postcard])
+async def get_postcards(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PostcardModel).order_by(PostcardModel.created_at.desc()))
+    postcards = result.scalars().all()
+    return postcards
+
+@app.post("/api/postcards", response_model=Postcard)
+async def create_postcard(
+    user_name: str = Form(...),
+    location: str = Form(...),
+    country: str = Form(...),
+    caption: str = Form(...),
+    personal_message: str = Form(...),
+    date_stamp: str = Form(...),
+    lat: float = Form(...),
+    lng: float = Form(...),
+    image: UploadFile = File(...),
+    user_avatar: Optional[UploadFile] = File(None),
+    db: AsyncSession = Depends(get_db)
+):
+    # Save main image (required)
+    image_url = await save_uploaded_file(image, "images")
+    
+    # Save user avatar if provided
+    user_avatar_url = None
+    if user_avatar:
+        user_avatar_url = await save_uploaded_file(user_avatar, "avatars")
+    
+    # Create postcard
+    db_postcard = PostcardModel(
+        user_name=user_name,
+        user_avatar=user_avatar_url,
+        location=location,
+        country=country,
+        image_url=image_url,
+        caption=caption,
+        personal_message=personal_message,
+        date_stamp=date_stamp,
+        lat=lat,
+        lng=lng,
+        likes=0,
+        comments=0
+    )
+    
+    db.add(db_postcard)
+    await db.commit()
+    await db.refresh(db_postcard)
+    
+    return db_postcard
+
+@app.delete("/api/postcards/{postcard_id}")
+async def delete_postcard(postcard_id: int, db: AsyncSession = Depends(get_db)):
+    # Get existing postcard
+    result = await db.execute(select(PostcardModel).where(PostcardModel.id == postcard_id))
+    db_postcard = result.scalar_one_or_none()
+    
+    if not db_postcard:
+        raise HTTPException(status_code=404, detail="Postcard not found")
+    
+    # Delete associated images
+    if db_postcard.image_url:
+        delete_file(db_postcard.image_url)
+    if db_postcard.user_avatar:
+        delete_file(db_postcard.user_avatar)
+    
+    # Delete postcard
+    await db.delete(db_postcard)
+    await db.commit()
+    
+    return {"message": "Postcard deleted successfully"}
+
+@app.put("/api/postcards/{postcard_id}/like")
+async def like_postcard(postcard_id: int, db: AsyncSession = Depends(get_db)):
+    # Get existing postcard
+    result = await db.execute(select(PostcardModel).where(PostcardModel.id == postcard_id))
+    db_postcard = result.scalar_one_or_none()
+    
+    if not db_postcard:
+        raise HTTPException(status_code=404, detail="Postcard not found")
+    
+    # Increment likes
+    db_postcard.likes += 1
+    await db.commit()
+    await db.refresh(db_postcard)
+    
+    return {"likes": db_postcard.likes}
 
 if __name__ == "__main__":
     import uvicorn
