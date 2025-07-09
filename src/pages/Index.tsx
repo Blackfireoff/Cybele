@@ -82,8 +82,8 @@ const Index = () => {
           <TabsContent value="globe" className="space-y-4 sm:space-y-6">
             <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
               {/* Globe Section */}
-              <div className="flex-1">
-                <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] xl:h-[800px]">
+              <div className="flex-1 min-w-0"> {/* min-w-0 prevents flex child from overflowing */}
+                <div className="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
                   <div className="text-center mb-4 sm:mb-6">
                     <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-ocean-900 mb-1 sm:mb-2">
                       Your Global Network
@@ -92,7 +92,15 @@ const Index = () => {
                       Discover where your friends are studying around the world
                     </p>
                   </div>
-                  <div className="h-full">
+                  {/* Globe container with responsive height that fits viewport */}
+                  <div 
+                    className="w-full border rounded-lg bg-gradient-to-b from-sky-100 to-blue-200" 
+                    style={{ 
+                      height: 'min(70vh, 600px)',
+                      minHeight: '300px',
+                      maxHeight: '800px'
+                    }}
+                  >
                     <Globe />
                   </div>
                 </div>
@@ -141,16 +149,19 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="posts">
-            <div className="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 min-h-[400px] sm:min-h-[600px] lg:min-h-[800px]">
-              <div className="text-center mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-ocean-900 mb-1 sm:mb-2">
-                  Friends' Memories
+            <div className="glass-card rounded-xl sm:rounded-2xl overflow-hidden">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-amber-900 mb-2" style={{ fontFamily: 'serif' }}>
+                  Postcards from Friends
                 </h2>
-                <p className="text-xs sm:text-sm lg:text-base text-ocean-600">
-                  Explore your friends' adventures pinned on the cork board
+                <p className="text-sm sm:text-base lg:text-lg text-amber-700 italic">
+                  "Memories shared across the miles"
                 </p>
+                <div className="mt-3 w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-amber-600 to-transparent mx-auto"></div>
               </div>
-              <CorkBoard />
+              <div className="relative">
+                <CorkBoard />
+              </div>
             </div>
           </TabsContent>
         </Tabs>

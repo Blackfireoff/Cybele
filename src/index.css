@@ -93,6 +93,13 @@
     overflow: hidden;
   }
 
+  .line-clamp-6 {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   .preserve-3d {
     transform-style: preserve-3d;
   }
@@ -103,5 +110,51 @@
 
   .border-3 {
     border-width: 3px;
+  }
+
+  /* Postcard specific styles */
+  .postcard-shadow {
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.2),
+      0 6px 20px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .vintage-border {
+    border: 3px solid rgba(139, 69, 19, 0.1);
+    border-image: repeating-linear-gradient(
+      45deg,
+      rgba(139, 69, 19, 0.2) 0px,
+      rgba(139, 69, 19, 0.2) 2px,
+      transparent 2px,
+      transparent 4px
+    ) 1;
+  }
+
+  .cursive-font {
+    font-family: 'Dancing Script', 'Brush Script MT', cursive;
+  }
+
+  .handwriting-font {
+    font-family: 'Kalam', 'Comic Sans MS', cursive;
+  }
+
+  /* Postmark effect */
+  .postmark-circle {
+    background: 
+      radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.1) 32%, rgba(0,0,0,0.1) 34%, transparent 36%),
+      radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.1) 22%, rgba(0,0,0,0.1) 24%, transparent 26%);
+  }
+
+  /* Stamp perforations */
+  .stamp-perforations {
+    background-image: 
+      radial-gradient(circle at 2px 2px, transparent 1px, currentColor 1px),
+      radial-gradient(circle at 2px calc(100% - 2px), transparent 1px, currentColor 1px),
+      radial-gradient(circle at calc(100% - 2px) 2px, transparent 1px, currentColor 1px),
+      radial-gradient(circle at calc(100% - 2px) calc(100% - 2px), transparent 1px, currentColor 1px);
+    background-size: 4px 4px;
+    background-position: 0 0, 0 100%, 100% 0, 100% 100%;
+    background-repeat: repeat-x, repeat-x, repeat-x, repeat-x;
   }
 }

@@ -223,12 +223,16 @@ export const Globe = () => {
   useEffect(() => {
     if (!mountRef.current || viewMode !== 'globe') return;
 
-    // Calculate responsive dimensions
+    // Calculate responsive dimensions that fit within the container
     const container = mountRef.current;
     const containerRect = container.getBoundingClientRect();
-    const size = Math.min(containerRect.width, containerRect.height, 800);
-    const isMobile = window.innerWidth < 640;
-    const responsiveSize = isMobile ? Math.min(size * 0.9, 300) : Math.min(size * 0.9, 600);
+    const availableWidth = containerRect.width - 16; // Account for padding
+    const availableHeight = containerRect.height - 16; // Account for padding
+    
+    // Use the smaller dimension to ensure it fits, with reasonable limits
+    const size = Math.min(availableWidth, availableHeight, 600);
+    const minSize = 200; // Minimum size for usability
+    const responsiveSize = Math.max(size, minSize);
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -237,6 +241,12 @@ export const Globe = () => {
     
     renderer.setSize(responsiveSize, responsiveSize);
     renderer.setClearColor(0x000000, 0);
+    
+    // Style the canvas to be centered and contained
+    renderer.domElement.style.maxWidth = '100%';
+    renderer.domElement.style.maxHeight = '100%';
+    renderer.domElement.style.objectFit = 'contain';
+    
     mountRef.current.appendChild(renderer.domElement);
 
     sceneRef.current = scene;
@@ -540,10 +550,10 @@ export const Globe = () => {
   }, [isHovering, viewMode, customPoints, friends]);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center">
+    <div className="relative w-full h-full overflow-hidden rounded-lg">
       {/* Loading state */}
       {isLoading && (
-        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50 rounded-lg">
           <div className="text-center">
             <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-2 text-xs sm:text-sm text-gray-600">Loading...</p>
@@ -552,12 +562,12 @@ export const Globe = () => {
       )}
 
       {/* View Toggle Controls - Map first, Globe second */}
-      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10 flex gap-1 sm:gap-2">
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 flex gap-1 sm:gap-2">
         <Button
           variant={viewMode === 'map' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setViewMode('map')}
-          className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+          className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 shadow-lg"
         >
           <Map className="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="hidden xs:inline">Map</span>
@@ -566,7 +576,7 @@ export const Globe = () => {
           variant={viewMode === 'globe' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setViewMode('globe')}
-          className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+          className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 shadow-lg"
         >
           <GlobeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="hidden xs:inline">Globe</span>
@@ -575,12 +585,12 @@ export const Globe = () => {
 
       {/* Clear Points Button */}
       {customPoints.length > 0 && (
-        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCustomPoints([])}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 shadow-lg"
           >
             <span className="hidden sm:inline">Clear Points ({customPoints.length})</span>
             <span className="sm:hidden">Clear ({customPoints.length})</span>
@@ -589,7 +599,7 @@ export const Globe = () => {
       )}
 
       {/* Instructions */}
-      <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-10 bg-black/80 text-white text-xs sm:text-sm p-2 sm:p-3 rounded-lg max-w-[200px] sm:max-w-xs">
+      <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-20 bg-black/80 text-white text-xs sm:text-sm p-2 sm:p-3 rounded-lg max-w-[180px] sm:max-w-xs shadow-lg">
         <div className="font-semibold mb-1">Controls:</div>
         <div>• Click anywhere to add a point</div>
         <div className="hidden sm:block">• {viewMode === 'globe' ? 'Drag to rotate, scroll to zoom' : 'Drag to pan, scroll to zoom'}</div>
@@ -600,11 +610,11 @@ export const Globe = () => {
 
       {/* Map View */}
       {viewMode === 'map' && (
-        <div className="w-full h-full" style={{ minHeight: '300px' }}>
+        <div className="absolute inset-0 w-full h-full">
           <MapContainer
             center={[20, 0]}
             zoom={window.innerWidth < 640 ? 1 : 2}
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0 }}
             className="rounded-lg"
           >
             <TileLayer
@@ -696,12 +706,7 @@ export const Globe = () => {
       {viewMode === 'globe' && (
         <div 
           ref={mountRef} 
-          className="relative cursor-grab active:cursor-grabbing w-full h-full flex items-center justify-center"
-          style={{ 
-            minHeight: '300px',
-            maxWidth: '100%',
-            maxHeight: '100%'
-          }}
+          className="absolute inset-0 cursor-grab active:cursor-grabbing flex items-center justify-center overflow-hidden"
         />
       )}
 
