@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
-import { Upload, X, MapPin, Calendar } from 'lucide-react';
+import { Upload, X, MapPin, Calendar, Check } from 'lucide-react';
 import { apiService, CreatePostcardData } from '../lib/api';
+import { validCountries } from './PostcardStamp';
+
+// For reverse geocoding
+const GEOCODING_API_URL = 'https://nominatim.openstreetmap.org/reverse';
 
 interface CreatePostcardMapModalProps {
   isOpen: boolean;
@@ -36,24 +40,99 @@ export const CreatePostcardMapModal: React.FC<CreatePostcardMapModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [countryValid, setCountryValid] = useState<boolean | null>(null);
+  const [suggestedCountries, setSuggestedCountries] = useState<string[]>([]);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        userName: '',
-        location: '',
-        country: '',
-        caption: '',
-        personalMessage: '',
+  // When modal opens or coordinates change, fetch location data
+  useEffect(() => {
+    if (isOpen && initialLat && initialLng) {
+      fetchLocationFromCoordinates(initialLat, initialLng);
+      setFormData(prev => ({
+        ...prev,
         lat: initialLat,
         lng: initialLng,
         dateStamp: new Date().toISOString().split('T')[0]
-      });
+      }));
+    }
+    // Reset form state when modal opens
+    if (isOpen) {
       setSelectedImage(null);
       setImagePreview(null);
       setError(null);
+      setCountryValid(null);
+      setSuggestedCountries([]);
     }
   }, [isOpen, initialLat, initialLng]);
+
+  // Validate country when it changes
+  useEffect(() => {
+    if (formData.country) {
+      validateCountry(formData.country);
+    } else {
+      setCountryValid(null);
+      setSuggestedCountries([]);
+    }
+  }, [formData.country]);
+
+  // Fetch location data from coordinates using OpenStreetMap Nominatim API
+  const fetchLocationFromCoordinates = async (lat: number, lng: number) => {
+    if (!lat || !lng) return;
+    
+    setIsLoadingLocation(true);
+    try {
+      const url = `${GEOCODING_API_URL}?lat=${lat}&lon=${lng}&format=json`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      // Extract location information
+      if (data && data.address) {
+        const city = data.address.city || data.address.town || data.address.village || data.address.hamlet || '';
+        let country = data.address.country || '';
+        
+        setFormData(prev => ({
+          ...prev,
+          location: city,
+          country: country
+        }));
+        
+        // Validate the retrieved country
+        validateCountry(country);
+      }
+    } catch (error) {
+      console.error('Error fetching location data:', error);
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  // Validate country against our list of supported countries
+  const validateCountry = (countryName: string) => {
+    const normalizedInput = countryName.trim().toUpperCase();
+    
+    // Check if country exists in our valid countries list
+    const exactMatch = validCountries.find(c => c === normalizedInput);
+    if (exactMatch) {
+      setCountryValid(true);
+      setSuggestedCountries([]);
+      return;
+    }
+    
+    // Find close matches for suggestions
+    const suggestions = validCountries.filter(c => 
+      c.includes(normalizedInput) || 
+      normalizedInput.includes(c)
+    ).slice(0, 3); // Limit to 3 suggestions
+    
+    setCountryValid(false);
+    setSuggestedCountries(suggestions);
+  };
+
+  const handleSuggestionClick = (country: string) => {
+    setFormData(prev => ({ ...prev, country }));
+    setCountryValid(true);
+    setSuggestedCountries([]);
+  };
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -89,6 +168,11 @@ export const CreatePostcardMapModal: React.FC<CreatePostcardMapModalProps> = ({
     
     if (!formData.userName.trim() || !formData.location.trim() || !formData.country.trim() || !formData.caption.trim() || !selectedImage) {
       setError('Please fill all required fields and upload an image');
+      return;
+    }
+
+    if (countryValid === false) {
+      setError('Please select a valid country from the suggestions');
       return;
     }
 
@@ -149,25 +233,63 @@ export const CreatePostcardMapModal: React.FC<CreatePostcardMapModalProps> = ({
               <Label htmlFor="location" className="text-sm sm:text-base flex items-center gap-1">
                 <MapPin className="h-4 w-4" /> City/Location *
               </Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder="e.g. Paris, Tokyo"
-                required
-                className="text-sm sm:text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  placeholder={isLoadingLocation ? "Loading..." : "e.g. Paris, Tokyo"}
+                  required
+                  className="text-sm sm:text-base"
+                  disabled={isLoadingLocation}
+                />
+                {isLoadingLocation && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="country" className="text-sm sm:text-base">Country *</Label>
-              <Input
-                id="country"
-                value={formData.country}
-                onChange={(e) => handleInputChange('country', e.target.value)}
-                placeholder="e.g. France, Japan"
-                required
-                className="text-sm sm:text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  placeholder={isLoadingLocation ? "Loading..." : "e.g. France, Japan"}
+                  required
+                  className={`text-sm sm:text-base ${
+                    countryValid === true ? 'border-green-500' : 
+                    countryValid === false ? 'border-red-500' : ''
+                  }`}
+                  disabled={isLoadingLocation}
+                />
+                {countryValid === true && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500">
+                    <Check className="h-4 w-4" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Country suggestions */}
+              {suggestedCountries.length > 0 && (
+                <div className="mt-1 p-2 bg-white shadow-lg rounded-md border">
+                  <p className="text-xs text-gray-500 mb-1">Suggestions:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestedCountries.map((country) => (
+                      <button
+                        key={country}
+                        type="button"
+                        onClick={() => handleSuggestionClick(country)}
+                        className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100"
+                      >
+                        {country}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

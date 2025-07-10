@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, MapPin, Mail, Stamp } from 'lucide-react';
 import { apiService, Postcard } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import PostcardStampComponent, { stamps as stampDesigns } from './PostcardStamp';
 
 // Beautiful PushPin component
 const PushPin: React.FC<{ color?: string; size?: 'sm' | 'md' | 'lg' }> = ({ 
@@ -63,6 +64,8 @@ const PushPin: React.FC<{ color?: string; size?: 'sm' | 'md' | 'lg' }> = ({
   );
 };
 
+
+
 interface PostCardProps {
   post: Postcard;
   rotation: number;
@@ -71,17 +74,6 @@ interface PostCardProps {
   onLike: (id: number) => void;
 }
 
-// Vintage stamp designs with hex colors
-const stamps = [
-  { color: 'bg-red-500', hexColor: '#ef4444', pattern: '🗼', country: 'FRANCE' },
-  { color: 'bg-pink-500', hexColor: '#ec4899', pattern: '🌸', country: 'JAPAN' },
-  { color: 'bg-green-500', hexColor: '#22c55e', pattern: '🏛️', country: 'ITALY' },
-  { color: 'bg-yellow-500', hexColor: '#eab308', pattern: '🎨', country: 'SPAIN' },
-  { color: 'bg-blue-500', hexColor: '#3b82f6', pattern: '🗽', country: 'USA' },
-  { color: 'bg-purple-500', hexColor: '#a855f7', pattern: '🏰', country: 'UK' },
-  { color: 'bg-orange-500', hexColor: '#f97316', pattern: '🗺️', country: 'DEFAULT' }
-];
-
 const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimensions, onLike }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -89,7 +81,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
   const [isHovered, setIsHovered] = useState(false);
 
   // Get appropriate stamp for the country
-  const stamp = stamps.find(s => s.country === post.country.toUpperCase()) || stamps[stamps.length - 1];
+  const stamp = stampDesigns.find(s => s.country === post.country.toUpperCase()) || stampDesigns[stampDesigns.length - 1];
 
   // Format timestamp to display relative time
   const getRelativeTime = (dateString: string) => {
@@ -266,89 +258,85 @@ const PostCard: React.FC<PostCardProps> = ({ post, rotation, position, dimension
           <div className="w-full h-full bg-white rounded-lg shadow-2xl border border-gray-200 p-3 sm:p-4 md:p-6 relative vintage-border">
             {/* Postcard back header */}
             <div className="flex justify-between items-start mb-2 sm:mb-3">
-              <div className="text-xs text-gray-500 font-mono tracking-wider">
-                POST CARD
+              <div className="text-sm text-gray-500 font-mono tracking-wider ml-3 mt-3">
+                Message :
               </div>
             </div>
 
             {/* Enhanced Stamp and Postmark in top right corner */}
-            <div className="absolute top-3 sm:top-4 right-3 sm:right-6 flex items-start">
-              {/* Improved vintage stamp */}
-              <div className={`w-12 h-16 sm:w-16 sm:h-20 ${stamp.color} text-white flex flex-col items-center justify-center stamp-perforations rounded-sm border-2 border-white shadow-md transform rotate-1`}>
-                <div className="text-sm sm:text-lg mb-1">{stamp.pattern}</div>
-                <div className="text-xs font-bold">{stamp.country}</div>
-                <div className="text-[10px] mt-1 font-mono">{new Date().getFullYear()}</div>
-              </div>
-              
-              {/* Enhanced Postmark - overlapping the stamp slightly */}
-              <div className="absolute top-2 right-4 w-20 h-20 sm:w-24 sm:h-24 postmark-circle flex items-center justify-center transform -rotate-6 opacity-70">
-                <div className="text-center text-xs text-gray-600 transform rotate-6">
-                  <div className="font-bold text-[10px] sm:text-xs uppercase tracking-wide">{post.location}</div>
-                  <div className="font-mono text-[10px] sm:text-xs font-medium">JUL 09</div>
-                  <div className="font-mono text-[10px] sm:text-xs font-medium">2025</div>
-                </div>
-              </div>
+            <div className="absolute top-2.5 sm:top-3 right-3 sm:right-4 flex items-start">
+              <PostcardStampComponent 
+                country={post.country}
+                city={post.location}
+                date={post.date_stamp ? post.date_stamp.substring(0, 6) : 'JUL 09'}
+              />
             </div>
 
-            {/* Stats section - positioned in the upper left */}
-            <div className="absolute left-3 sm:left-6 top-14 sm:top-16 w-[40%] z-10">
-              <div className="p-2 sm:p-3 bg-gray-50/80 rounded border border-gray-200/50">
-                <div className="text-xs text-gray-500 mb-1 font-mono uppercase tracking-wide">Postcard Stats:</div>
-                <div className="space-y-0.5 text-xs text-gray-600">
-                  <div className="flex items-center gap-1.5">
-                    <Heart className="w-3 h-3 text-red-400" /> 
-                    <span>{post.likes + (isLiked ? 1 : 0)} hearts</span>
+            {/* Message section - now above the horizontal line with improved styling */}
+            <div className="absolute left-3 sm:left-6 right-3 sm:right-6 top-12 sm:top-16 w-[80%] sm:w-[75%] z-10">
+              <div 
+                className="text-xs sm:text-sm text-gray-700 leading-relaxed italic handwriting-font"
+              >
+                {post.personal_message || 'No message provided'}
+              </div>
+              
+              {/* Signature with improved styling */}
+              <div className="mt-4 sm:mt-6 flex items-center gap-2">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 overflow-hidden rounded-full border border-gray-200 flex-shrink-0">
+                  <img
+                    src={post.user_avatar ? apiService.getCompleteImageUrl(post.user_avatar) : 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face'}
+                    alt={post.user_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <div className="text-xs font-medium text-gray-800 handwriting-font">
+                    {post.user_name}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <MessageCircle className="w-3 h-3 text-blue-400" /> 
-                    <span>{post.comments} comments</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="text-[10px] w-3 h-3 flex items-center justify-center">📅</div>
-                    <span>Sent {getRelativeTime(post.created_at)}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3 text-red-500" /> 
-                    <span>From {post.location}</span>
+                  <div className="text-[10px] text-gray-500">
+                    Exchange Student
                   </div>
                 </div>
               </div>
             </div>
             
-            {/* Horizontal divider line - positioned lower on the card */}
-            <div className="absolute left-3 sm:left-6 right-3 sm:right-6 top-[45%] h-px bg-gray-300 border-t border-dashed border-gray-200"></div>
+            {/* Horizontal divider line - styled to match the image */}
+            <div className="absolute left-2 sm:left-4 right-2 sm:right-4 top-[42%] h-[1px] bg-gray-300"></div>
 
-            {/* Message section - below the horizontal line */}
-            <div className="absolute left-3 sm:left-6 right-3 sm:right-6 top-[calc(45%+12px)] sm:top-[calc(45%+16px)]">
-              <div className="text-xs text-gray-500 mb-2 font-mono uppercase tracking-wide">Message:</div>
-              <div 
-                className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-6 sm:line-clamp-none handwriting-font"
-              >
-                {post.personal_message || 'No message provided'}
-              </div>
-              
-              {/* Signature */}
-              <div className="mt-4 sm:mt-6">
-                <div className="flex items-center space-x-2">
-                  <img
-                    src={post.user_avatar ? apiService.getCompleteImageUrl(post.user_avatar) : 'https://images.unsplash.com/photo-1494790108755-2616b612b3fd?w=150&h=150&fit=crop&crop=face'}
-                    alt={post.user_name}
-                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-200 shadow-sm"
-                  />
-                  <div>
-                    <div className="text-xs sm:text-sm font-semibold text-gray-800 handwriting-font">
-                      {post.user_name}
+            {/* Stats section - now below the horizontal line with improved responsiveness */}
+            <div className="absolute left-3 sm:left-6 right-3 sm:right-6 top-[calc(42%+16px)] sm:top-[calc(42%+20px)]">
+              <div className="text-xs text-gray-600 mb-2 font-mono uppercase tracking-wider">Postcard Stats:</div>
+              <div className="py-1">
+                <div className="flex justify-between text-[11px] sm:text-xs text-gray-600">
+                  {/* Left side - hearts and comments */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-3.5 h-3.5 text-red-400 flex-shrink-0" /> 
+                      <span>{post.likes + (isLiked ? 1 : 0)} hearts</span>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      Exchange Student
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" /> 
+                      <span>{post.comments} comments</span>
+                    </div>
+                  </div>
+                  
+                  {/* Right side - date and location */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3.5 h-3.5 flex items-center justify-center text-blue-500 flex-shrink-0">📅</div>
+                      <span className="line-clamp-1">Sent {getRelativeTime(post.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0" /> 
+                      <span className="line-clamp-1">From {post.location}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Click instruction */}
-            <div className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 text-xs text-gray-400 italic">
+            {/* Click instruction - styled to match the image */}
+            <div className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 italic">
               Click to flip back
             </div>
           </div>
