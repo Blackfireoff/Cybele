@@ -23,7 +23,8 @@ export const stamps = [
 export const validCountries = stamps.map(stamp => stamp.country);
 
 // Format a date for the postmark
-export const formatPostmarkDate = (dateString?: string): string => {
+export const formatPostmarkDate = (dateString?: string | object | null): string => {
+  // Default to current date if no date string is provided
   if (!dateString) {
     const now = new Date();
     return now.toLocaleDateString('en-US', { 
@@ -32,9 +33,15 @@ export const formatPostmarkDate = (dateString?: string): string => {
     }).toUpperCase();
   }
   
+  // If dateString is not a string, return default date
+  if (typeof dateString !== 'string') {
+    return 'JUL 10';
+  }
+  
   try {
     // Handle various date formats
     const date = new Date(dateString);
+    
     if (isNaN(date.getTime())) {
       // If parsing fails, try to extract from formatted string
       const parts = dateString.split(' ');
@@ -42,7 +49,15 @@ export const formatPostmarkDate = (dateString?: string): string => {
         // Already in desired format
         return `${parts[0]} ${parts[1]}`;
       }
-      return dateString;
+      
+      // If we can't parse it in any way, return the original string
+      // as long as it's reasonably short
+      if (dateString.length <= 8) {
+        return dateString.toUpperCase();
+      }
+      
+      // Fall back to default date
+      return 'JUL 10';
     }
     
     return date.toLocaleDateString('en-US', { 
@@ -51,7 +66,7 @@ export const formatPostmarkDate = (dateString?: string): string => {
     }).toUpperCase();
   } catch (error) {
     console.error('Error formatting date for postmark:', error);
-    return dateString || 'JUL 10';
+    return 'JUL 10';
   }
 };
 
@@ -66,40 +81,72 @@ const PostcardStamp: React.FC<PostcardStampProps> = ({
   city = 'Paris',
   date = 'JUL 10' 
 }) => {
-  // Normalize country name to uppercase for matching
-  const normalizedCountry = country.toUpperCase();
+  // Safely handle potentially invalid inputs with default values
+  const safeCountryInput = typeof country === 'string' ? country : 'FRANCE';
+  const safeCityInput = typeof city === 'string' ? city : 'Paris';
+  const safeDateInput = typeof date === 'string' ? date : 'JUL 10';
   
-  // Get colors and patterns based on country
-  const stampInfo = stamps.find(s => s.country === normalizedCountry) || stamps[stamps.length - 1];
-  const currentYear = new Date().getFullYear();
-  
-  // Format the date for postmark
-  const formattedDate = formatPostmarkDate(date);
-  
-  // Default stamp pattern if not found in country patterns
-  const pattern = stampInfo.pattern || '★';
+  try {
+    // Normalize country name to uppercase for matching
+    const normalizedCountry = safeCountryInput.toUpperCase();
+    
+    // Get colors and patterns based on country
+    const stampInfo = stamps.find(s => s.country === normalizedCountry) || stamps[stamps.length - 1];
+    const currentYear = new Date().getFullYear();
+    
+    // Format the date for postmark with proper error handling
+    const formattedDate = formatPostmarkDate(safeDateInput);
+    
+    // Default stamp pattern if not found in country patterns
+    const pattern = stampInfo?.pattern || '★';
 
-  return (
-    <div className="flex items-start">
-      {/* Vintage stamp based on country */}
-      <div 
-        className="w-12 h-14 sm:w-14 sm:h-16 text-white flex flex-col items-center justify-center stamp-perforations rounded-sm border border-white shadow-md transform rotate-1"
-        style={{ backgroundColor: stampInfo.hexColor }}
-      >
-        <div className="text-[10px] sm:text-xs mb-1 font-bold uppercase">{normalizedCountry}</div>
-        <div className="text-base sm:text-lg font-bold">{pattern}</div>
-      </div>
-      
-      {/* Postmark circle - overlapping the stamp slightly */}
-      <div className="absolute top-0 -right-2 w-20 h-20 sm:w-20 sm:h-20 postmark-circle flex items-center justify-center transform -rotate-6 opacity-80">
-        <div className="text-center text-xs text-gray-600 transform rotate-6">
-          <div className="font-bold text-[10px] sm:text-xs uppercase tracking-wide">{city}</div>
-          <div className="font-mono text-[10px] sm:text-xs font-medium">{formattedDate}</div>
-          <div className="font-mono text-[10px] sm:text-xs font-medium">{currentYear}</div>
+    return (
+      <div className="flex items-start">
+        {/* Vintage stamp based on country */}
+        <div 
+          className="w-12 h-14 sm:w-14 sm:h-16 text-white flex flex-col items-center justify-center stamp-perforations rounded-sm border border-white shadow-md transform rotate-1"
+          style={{ backgroundColor: stampInfo?.hexColor || '#f97316' }}
+        >
+          <div className="text-[10px] sm:text-xs mb-1 font-bold uppercase">{normalizedCountry}</div>
+          <div className="text-base sm:text-lg font-bold">{pattern}</div>
+        </div>
+        
+        {/* Postmark circle - overlapping the stamp slightly */}
+        <div className="absolute top-0 -right-2 w-20 h-20 sm:w-20 sm:h-20 postmark-circle flex items-center justify-center transform -rotate-6 opacity-80">
+          <div className="text-center text-xs text-gray-600 transform rotate-6">
+            <div className="font-bold text-[10px] sm:text-xs uppercase tracking-wide">{safeCityInput}</div>
+            <div className="font-mono text-[10px] sm:text-xs font-medium">{formattedDate}</div>
+            <div className="font-mono text-[10px] sm:text-xs font-medium">{currentYear}</div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error('Error rendering PostcardStamp:', error);
+    
+    // Fallback rendering in case of any error
+    return (
+      <div className="flex items-start">
+        {/* Fallback stamp */}
+        <div 
+          className="w-12 h-14 sm:w-14 sm:h-16 text-white flex flex-col items-center justify-center stamp-perforations rounded-sm border border-white shadow-md transform rotate-1"
+          style={{ backgroundColor: '#f97316' }}
+        >
+          <div className="text-[10px] sm:text-xs mb-1 font-bold uppercase">DEFAULT</div>
+          <div className="text-base sm:text-lg font-bold">★</div>
+        </div>
+        
+        {/* Fallback postmark */}
+        <div className="absolute top-0 -right-2 w-20 h-20 sm:w-20 sm:h-20 postmark-circle flex items-center justify-center transform -rotate-6 opacity-80">
+          <div className="text-center text-xs text-gray-600 transform rotate-6">
+            <div className="font-bold text-[10px] sm:text-xs uppercase tracking-wide">Paris</div>
+            <div className="font-mono text-[10px] sm:text-xs font-medium">JUL 10</div>
+            <div className="font-mono text-[10px] sm:text-xs font-medium">{new Date().getFullYear()}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default PostcardStamp;
